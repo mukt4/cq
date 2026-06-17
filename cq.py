@@ -755,20 +755,25 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  cq.py output_dir                           # Basic scan
-  cq.py -c "php" output_dir                  # Only run PHP checks
-  cq.py -a -vv output_dir                    # Check all files with verbose output
-  cq.py -ns -sa -vvv output_dir              # No skip, scan all files, very verbose
-  cq.py -x node_modules -x .git output_dir   # Exclude specific directories by name
-  cq.py -x build -x dist -x venv output_dir  # Multiple exclusions
+  cq.py source_dir output_dir                           # Basic scan
+  cq.py -c "php" source_dir output_dir                  # Only run PHP checks
+  cq.py -a -vv source_dir output_dir                    # Check all files with verbose output
+  cq.py -ns -sa -vvv source_dir output_dir              # No skip, scan all files, very verbose
+  cq.py -x node_modules -x .git source_dir output_dir   # Exclude specific directories by name
+  cq.py -x build -x dist -x venv source_dir output_dir  # Multiple exclusions
         '''
     )
-    
+
+    parser.add_argument(
+        'source_dir',
+        help='Directory containing the codebase to scan'
+    )
+
     parser.add_argument(
         'output_dir',
         help='Output directory for scan results'
     )
-    
+
     parser.add_argument(
         '-a', '--all',
         action='store_true',
@@ -833,7 +838,15 @@ Examples:
     )
     
     args = parser.parse_args()
-    
+
+    if not os.path.isdir(args.source_dir):
+        parser.error(f"source_dir '{args.source_dir}' is not a directory")
+
+    # Resolve paths to absolute before changing directory, since the rest of
+    # the codebase assumes "." refers to the codebase being scanned.
+    source_dir = os.path.abspath(args.source_dir)
+    output_dir = os.path.abspath(args.output_dir)
+
     # Set global variables in fn module based on parsed arguments
     fn.a = args.all or args.scan_all or args.scan_code
     fn.v = args.verbose or args.vv or args.vvv
@@ -844,18 +857,22 @@ Examples:
     fn.sc = args.scan_code or args.all
     fn.print_progress = args.progress
     fn.re_checks = args.checks
-    fn.outdir = args.output_dir
-    
+    fn.outdir = output_dir
+
     # Handle exclusions
     if args.exclude:
         fn.exclusions = args.exclude
-    
+
     # Create output directory if it doesn't exist
     try:
         os.makedirs(fn.outdir)
     except FileExistsError:
         print("Outdir exists")
-    
+
+    # Scanning code (os.walk(".") and the shell-based tool checks) assumes
+    # the codebase is the current directory, so switch into it here.
+    os.chdir(source_dir)
+
     print("Starting")
     fn.do_checks(regex.compile(fn.re_checks))
 

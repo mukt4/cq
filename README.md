@@ -31,4 +31,15 @@ removed from the results either by inspection or in an automated fashion, due to
 Little to no explanation of issues is provided; it's assumed that you are aware of the context, impact and 
 characteristics of the issues reported.
 
+## Usage
+
+```
+cq.py [options] <source_dir> <output_dir>
+```
+
+`source_dir` is the path to the codebase to scan; `output_dir` is where the result text files are written. For example:
+
+```
+cq.py /path/to/codebase /tmp/cq_output
+```
 
