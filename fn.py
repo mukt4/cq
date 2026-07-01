@@ -212,6 +212,33 @@ def global_run_tool(out_fname, arg):
     os.system(cmd)
 
 
+def semgrep_run_tool(out_fname, arg):
+    import json
+    import subprocess
+    ruleset = arg.strip()
+    cwd = os.path.abspath(".")
+    try:
+        result = subprocess.run(
+            ["semgrep", "-c", ruleset, cwd, "--json"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        data = json.loads(result.stdout)
+        lines = []
+        for r in data.get("results", []):
+            path = r.get("path", "")
+            line = r.get("start", {}).get("line", "")
+            rule_id = r.get("check_id", "")
+            if path and line:
+                lines.append(f"{path}:{line}:{rule_id}")
+        if lines:
+            with open(out_fname, "a") as f:
+                f.write("\n".join(lines) + "\n")
+    except Exception:
+        pass
+
+
 def do_global_check(check):
     check_name = check[0]
     out_fname = outdir + '/' + check_name + '.txt'
